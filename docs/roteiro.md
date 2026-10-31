@@ -15,6 +15,7 @@ Uma etapa por sessão do Claude Code, na ordem. Em cada uma:
 - [ ] Gerar uma chave do Gemini no [Google AI Studio](https://aistudio.google.com).
 - [ ] No GitHub, em *Settings → Pages*, escolher **GitHub Actions** como fonte.
 - [ ] Instalar Node.js LTS e o [Supabase CLI](https://supabase.com/docs/guides/cli) na máquina.
+- [ ] Instalar o Docker Desktop: o Supabase CLI precisa dele para rodar o banco local (`supabase start`, `supabase db reset`).
 
 ---
 
