@@ -26,7 +26,7 @@ O dono do projeto é engenheiro backend experiente (Ruby on Rails, PostgreSQL, M
 ## Regras inegociáveis
 
 - **A chave do Gemini nunca vai para o front nem para o repositório.** Ela fica nos secrets do Supabase (`supabase secrets set GEMINI_API_KEY=...`) e só a Edge Function a lê.
-- A `anon key` e a URL do Supabase podem ir no front (são públicas por design); a proteção dos dados vem do **RLS**, que deve estar ligado em todas as tabelas.
+- A `publishable key` (antiga `anon key`) e a URL do Supabase podem ir no front (são públicas por design); a proteção dos dados vem do **RLS**, que deve estar ligado em todas as tabelas.
 - `.env`, `.env.local` e similares ficam no `.gitignore`. Use `.env.example` para documentar as variáveis.
 - **Não persistir CPF do consumidor**, mesmo que apareça na imagem ou na resposta da IA. O prompt da extração também deve instruir o modelo a não retorná-lo.
 - Imagens de cupom usadas como fixture de teste devem estar com o CPF recortado.
@@ -61,9 +61,12 @@ O dono do projeto é engenheiro backend experiente (Ruby on Rails, PostgreSQL, M
 
 Atualize esta seção conforme os comandos forem criados.
 
-- `npm run dev` — servidor local
-- `npm run build` — build de produção
-- `npm test` — testes (Vitest)
+- `npm run dev` — servidor local (http://localhost:5173/nfe-reader-app/)
+- `npm run build` — build de produção (checa tipos com `tsc` e gera `dist/`)
+- `npm run preview` — serve o `dist/` localmente, com service worker ativo
+- `npm test` — testes (Vitest); `npm run test:watch` para modo contínuo
+- `npm run lint` — ESLint
+- `npm run format` / `npm run format:check` — Prettier
 - `supabase start` / `supabase db reset` — banco local
 - `supabase migration new <nome>` — nova migration
 - `supabase functions serve` / `supabase functions deploy <nome>` — Edge Functions
