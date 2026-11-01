@@ -11,7 +11,7 @@ Uma etapa por sessão do Claude Code, na ordem. Em cada uma:
 
 ## Etapa 0 — Contas e acessos (só você)
 
-- [ ] Criar um projeto no [Supabase](https://supabase.com) (região São Paulo) e anotar a URL e a `anon key`.
+- [ ] Criar um projeto no [Supabase](https://supabase.com) (região São Paulo) e anotar a URL e a publishable key.
 - [ ] Gerar uma chave do Gemini no [Google AI Studio](https://aistudio.google.com).
 - [ ] No GitHub, em *Settings → Pages*, escolher **GitHub Actions** como fonte.
 - [ ] Instalar Node.js LTS e o [Supabase CLI](https://supabase.com/docs/guides/cli) na máquina.
@@ -35,17 +35,85 @@ Uma etapa por sessão do Claude Code, na ordem. Em cada uma:
 
 ## Etapa 2 — Banco de dados e keep-alive
 
-**Você faz antes:** `npx supabase login`, `npx supabase init`, `npx supabase link --project-ref <id-do-projeto>` e `npx supabase start` (veja o passo a passo na conversa ou no README do Supabase CLI).
+**Você faz antes**
+
+- `npx supabase login`, `npx supabase init`, `npx supabase link --project-ref <id-do-projeto>`.
+- Docker Desktop aberto e `npx supabase start` rodando (confira com `npx supabase status`).
+- `git pull` para o Claude Code ler a versão atual do `CLAUDE.md` e deste roteiro.
+- Os secrets `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` cadastrados no GitHub (já usados pelo deploy).
 
 **Prompt**
 
-> Leia `CLAUDE.md` e `docs/requisitos.md`, especialmente "Regras de negócio". Proponha o schema do Postgres para o MVP antes de escrever qualquer migration. Ele precisa cobrir: mercados (por CNPJ, com apelido), compras (chave de acesso única, data, totais, desconto geral, forma de pagamento), itens da compra (código, descrição, quantidade, unidade, valor unitário, valor total), classes e categorias, memória de classificação (código do item + CNPJ/raiz → classe), tamanho de embalagem lembrado por produto, e a configuração do limite de alta/baixa. Pense em como as consultas de histórico (mediana de 3 meses por classe) e de comparação entre mercados vão ficar. Depois de eu aprovar, crie as migrations com RLS em todas as tabelas, um seed com as 7 categorias, e um workflow do GitHub Actions com cron diário que faz uma consulta leve ao banco para evitar a pausa do plano gratuito.
+```text
+Leia o CLAUDE.md e o docs/requisitos.md inteiros, com atenção a "Regras de negócio e o cupom da PB" e aos requisitos RF02 a RF11. Esta é a etapa 2 do docs/roteiro.md: banco de dados e keep-alive. O Supabase local já está rodando (npx supabase start) e o projeto está linkado ao remoto.
+
+Trabalhe em duas fases. Não crie nem edite nenhum arquivo na fase 1.
+
+## Fase 1 — Proposta do schema (só plano, sem arquivos)
+
+Me apresente:
+
+1. Um diagrama ER em Mermaid e, para cada tabela: colunas, tipos, nulabilidade, chaves, constraints (unique, check, FKs com a regra de ON DELETE) e índices, com uma linha justificando cada decisão não óbvia.
+2. O que o schema precisa cobrir:
+   - Mercados: CNPJ completo (14 dígitos) identifica a filial; guardar também a raiz (8 primeiros dígitos) para agrupar a rede; razão social, endereço e apelido dado pelo usuário.
+   - Compras: chave de acesso de 44 dígitos única, data/hora de emissão (timestamptz), mercado, total dos produtos, desconto geral, total pago e forma de pagamento.
+   - Itens da compra: número da linha, código do item, descrição como veio na nota, quantidade, unidade original (UND, KG, PCT, BDJ, MCO, PTE...), valor unitário e valor total. O mesmo produto pode aparecer em mais de uma linha da mesma compra.
+   - Classes de produto (ex.: arroz branco, arroz integral) ligadas a uma categoria ampla.
+   - Categorias: exatamente estas 7 — Não perecíveis, Laticínios e frios, Carnes, Perecíveis, Hortifruti, Bebidas, Limpeza e higiene.
+   - Memória de classificação (RF06): código do item + raiz do CNPJ → classe. Nunca o código sozinho, porque ele é interno da rede e pode vir truncado.
+   - Tamanho de embalagem lembrado por produto (RF08), com unidade (g, kg, ml, l).
+   - Configuração do limite de alta/baixa (RF10), padrão 20%.
+   Avalie se a memória de classificação e o tamanho de embalagem cabem numa mesma tabela de produtos por (raiz do CNPJ, código) e diga o que prefere e por quê.
+3. Onde o preço normalizado (por kg ou litro) é calculado: coluna gerada, view ou no front. Justifique.
+4. Um rascunho do SQL das duas consultas que mais pesam, de preferência como views ou funções no banco:
+   - Mediana do preço normalizado por classe nos últimos 3 meses, considerando todos os mercados (percentile_cont), e a marcação de alta/baixa segundo a regra do CLAUDE.md (menos de duas compras da classe → sem marcação).
+   - Comparação entre dois mercados: classes compradas nos dois, preço de cada um e qual sai mais barato.
+5. As policies de RLS de cada tabela.
+6. Como o workflow de keep-alive vai funcionar.
+
+Deixe espaço para os requisitos pós-MVP sem implementá-los: compras de entrada manual sem cupom (RF13) podem não ter chave de acesso nem CNPJ, e itens podem ganhar depois um preço com desconto vindo da notinha (RF12). Diga como o schema acomoda isso sem migração destrutiva no futuro.
+
+Pare e espere minha aprovação.
+
+## Fase 2 — Implementação (só depois de eu aprovar)
+
+1. Crie as migrations com npx supabase migration new, em arquivos pequenos e com nomes descritivos, em supabase/migrations/.
+2. As 7 categorias entram por migration, não pelo seed: o seed.sql só roda no banco local e elas precisam existir em produção também.
+3. No supabase/seed.sql, coloque dados de exemplo só para desenvolvimento local: dois mercados, algumas compras em datas diferentes nos últimos meses e itens que exercitem as duas consultas (uma classe em alta, uma em baixa, uma com só uma compra, um item vendido por KG).
+4. RLS ligado em todas as tabelas, com acesso só para usuários autenticados (role authenticated); o role anon não lê nem escreve nada. Toda view deve ser criada com security_invoker = true, senão ela ignora o RLS das tabelas.
+5. Rode npx supabase db reset e confirme que sobe sem erro. Rode as consultas da fase 1 contra o seed e me mostre o resultado.
+6. Gere os tipos TypeScript com npx supabase gen types typescript --local > src/types/database.ts.
+7. Crie .github/workflows/keep-alive.yml: cron diário (horário fora de 00:00 UTC) e workflow_dispatch para disparo manual. Ele faz um GET em <VITE_SUPABASE_URL>/rest/v1/categories?select=id&limit=1 com os headers apikey e Authorization usando o secret VITE_SUPABASE_PUBLISHABLE_KEY. A resposta vem vazia por causa do RLS, e isso é esperado: a requisição já conta como atividade. O job falha só se o status HTTP não for 2xx.
+8. Atualize a seção "Comandos" do CLAUDE.md com os comandos novos (gen types, db push).
+9. Faça commits pequenos, no padrão do CLAUDE.md.
+
+## O que NÃO fazer
+
+- Não rode nada contra o projeto remoto: nem npx supabase db push, nem db reset --linked, nem migration repair. Ao terminar, me diga o comando para eu aplicar as migrations no remoto.
+- Não use a secret key nem a service_role key em nenhum lugar: front, workflow, seed ou scripts.
+- Não crie nem altere tabelas pelo Studio ou pelo painel; tudo por migration.
+- Não use float, real ou double para dinheiro ou quantidade; use numeric com precisão justificada.
+- Não crie coluna para CPF nem para dono/usuário da compra (a conta é única e compartilhada).
+- Não crie telas nem componentes React nesta etapa; o único arquivo do front é o de tipos gerados.
+- Não implemente RF12 a RF15; só não feche a porta para eles.
+
+Ao terminar, me diga como verificar tudo no Studio local (http://localhost:54323) e como disparar o keep-alive manualmente no GitHub.
+```
+
+**Depois que ele terminar**
+
+- Revise as migrations e rode `npx supabase db push` para aplicar no projeto remoto.
+- No GitHub, em *Actions → keep-alive*, dispare o workflow manualmente uma vez.
 
 **Pronto quando**
 
-- `npx supabase db reset` sobe o banco local sem erro e com as categorias.
-- As migrations foram aplicadas no projeto remoto.
-- O workflow de keep-alive rodou com sucesso pelo menos uma vez (dá para disparar manualmente).
+- `npx supabase db reset` sobe o banco local sem erro, com as 7 categorias e os dados de exemplo.
+- As consultas de mediana e de comparação retornam o esperado com o seed.
+- `src/types/database.ts` foi gerado.
+- Depois do `db push`, as tabelas e as categorias aparecem no painel do projeto remoto.
+- O keep-alive rodou com sucesso pelo menos uma vez.
+
+> O GitHub desativa workflows agendados de repositórios sem nenhuma atividade por 60 dias. Se o projeto ficar parado por esse tempo, o keep-alive para e o GitHub avisa por e-mail; basta reativá-lo em *Actions*.
 
 ---
 
