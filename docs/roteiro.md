@@ -113,7 +113,7 @@ Ao terminar, me diga como verificar tudo no Studio local (http://localhost:54323
 - Depois do `db push`, as tabelas e as categorias aparecem no painel do projeto remoto.
 - O keep-alive rodou com sucesso pelo menos uma vez.
 
-> O GitHub desativa workflows agendados de repositórios sem nenhuma atividade por 60 dias. Se o projeto ficar parado por esse tempo, o keep-alive para e o GitHub avisa por e-mail; basta reativá-lo em *Actions*.
+> Em repositórios públicos, o GitHub desativa workflows agendados após 60 dias sem nenhuma atividade no repo. Se o projeto ficar parado por esse tempo, o keep-alive para e o GitHub avisa por e-mail; basta reativá-lo em *Actions*.
 
 ---
 
