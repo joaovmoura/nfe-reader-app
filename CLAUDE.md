@@ -25,7 +25,7 @@ O dono do projeto é engenheiro backend experiente (Ruby on Rails, PostgreSQL, M
 
 ## Regras inegociáveis
 
-- **A chave do Gemini nunca vai para o front nem para o repositório.** Ela fica nos secrets do Supabase (`supabase secrets set GEMINI_API_KEY=...`) e só a Edge Function a lê.
+- **A chave do Gemini nunca vai para o front nem para o repositório.** Ela fica nos secrets do Supabase (`npx supabase secrets set GEMINI_API_KEY=...`) e só a Edge Function a lê.
 - A `publishable key` (antiga `anon key`) e a URL do Supabase podem ir no front (são públicas por design); a proteção dos dados vem do **RLS**, que deve estar ligado em todas as tabelas.
 - `.env`, `.env.local` e similares ficam no `.gitignore`. Use `.env.example` para documentar as variáveis.
 - **Não persistir CPF do consumidor**, mesmo que apareça na imagem ou na resposta da IA. O prompt da extração também deve instruir o modelo a não retorná-lo.
@@ -67,6 +67,7 @@ Atualize esta seção conforme os comandos forem criados.
 - `npm test` — testes (Vitest); `npm run test:watch` para modo contínuo
 - `npm run lint` — ESLint
 - `npm run format` / `npm run format:check` — Prettier
-- `supabase start` / `supabase db reset` — banco local
-- `supabase migration new <nome>` — nova migration
-- `supabase functions serve` / `supabase functions deploy <nome>` — Edge Functions
+- O Supabase CLI é dependência de dev do projeto: sempre rode como `npx supabase ...` (ambiente: WSL + Docker Desktop)
+- `npx supabase start` / `npx supabase db reset` — banco local
+- `npx supabase migration new <nome>` — nova migration
+- `npx supabase functions serve` / `npx supabase functions deploy <nome>` — Edge Functions

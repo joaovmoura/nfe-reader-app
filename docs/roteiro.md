@@ -35,7 +35,7 @@ Uma etapa por sessão do Claude Code, na ordem. Em cada uma:
 
 ## Etapa 2 — Banco de dados e keep-alive
 
-**Você faz antes:** `supabase login` e `supabase link` com o projeto da etapa 0.
+**Você faz antes:** `npx supabase login`, `npx supabase init`, `npx supabase link --project-ref <id-do-projeto>` e `npx supabase start` (veja o passo a passo na conversa ou no README do Supabase CLI).
 
 **Prompt**
 
@@ -43,7 +43,7 @@ Uma etapa por sessão do Claude Code, na ordem. Em cada uma:
 
 **Pronto quando**
 
-- `supabase db reset` sobe o banco local sem erro e com as categorias.
+- `npx supabase db reset` sobe o banco local sem erro e com as categorias.
 - As migrations foram aplicadas no projeto remoto.
 - O workflow de keep-alive rodou com sucesso pelo menos uma vez (dá para disparar manualmente).
 
@@ -66,7 +66,7 @@ Uma etapa por sessão do Claude Code, na ordem. Em cada uma:
 
 ## Etapa 4 — Envio do cupom e extração por IA (RF01–RF03)
 
-**Você faz antes:** `supabase secrets set GEMINI_API_KEY=...`. Separe o print do cupom com o CPF recortado para usar como teste.
+**Você faz antes:** `npx supabase secrets set GEMINI_API_KEY=...`. Separe o print do cupom com o CPF recortado para usar como teste.
 
 **Prompt**
 
