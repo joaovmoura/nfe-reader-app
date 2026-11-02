@@ -70,5 +70,5 @@ Atualize esta seção conforme os comandos forem criados.
 - O Supabase CLI é dependência de dev do projeto: sempre rode como `npx supabase ...` (ambiente: WSL + Docker Desktop)
 - `npx supabase start` / `npx supabase db reset` — banco local
 - `npx supabase migration new <nome>` — nova migration
-- `npx supabase db push` — aplica as migrations pendentes no projeto remoto (linkado)
+- `npx supabase db push --linked` — aplica as migrations pendentes no projeto remoto (o `--linked` evita que versões futuras do CLI mirem o banco local)
 - `npx supabase functions serve` / `npx supabase functions deploy <nome>` — Edge Functions
