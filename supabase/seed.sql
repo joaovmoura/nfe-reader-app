@@ -146,3 +146,27 @@ begin
   insert into public.purchase_payments (purchase_id, method, amount)
     select id, 'Cartão de Débito', paid_total from public.purchases;
 end $$;
+
+-- Local household account (the remote one is created in the dashboard).
+-- Login: casa@local.test / senha-local
+do $$
+declare
+  uid uuid := gen_random_uuid();
+begin
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
+    confirmation_token, recovery_token, email_change_token_new, email_change
+  ) values (
+    '00000000-0000-0000-0000-000000000000', uid, 'authenticated', 'authenticated',
+    'casa@local.test', extensions.crypt('senha-local', extensions.gen_salt('bf')), now(),
+    now(), now(), '{"provider": "email", "providers": ["email"]}', '{}',
+    '', '', '', ''
+  );
+
+  insert into auth.identities (provider_id, user_id, identity_data, provider, created_at, updated_at)
+  values (
+    uid::text, uid, jsonb_build_object('sub', uid::text, 'email', 'casa@local.test'),
+    'email', now(), now()
+  );
+end $$;
