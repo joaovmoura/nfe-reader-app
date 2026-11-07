@@ -1,5 +1,11 @@
-// Calls Gemini to read a receipt image into the receipt JSON schema.
+// Gemini calls: reading a receipt image and classifying its items.
 // Never log the model output: it could contain the consumer's CPF.
+import {
+  classificationJsonSchema,
+  classificationPrompt,
+  type ExistingClass,
+  type ItemToClassify,
+} from '../../../src/domain/classification.ts'
 import { receiptJsonSchema } from '../../../src/domain/receipt.ts'
 
 const API = 'https://generativelanguage.googleapis.com/v1beta/models'
@@ -7,7 +13,7 @@ const API = 'https://generativelanguage.googleapis.com/v1beta/models'
 // First model that answers wins; the next one is tried on overload or timeout.
 export const DEFAULT_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash']
 
-const PROMPT = `Você recebe a imagem de um cupom fiscal eletrônico (NFC-e) da Paraíba,
+const EXTRACTION_PROMPT = `Você recebe a imagem de um cupom fiscal eletrônico (NFC-e) da Paraíba,
 como impresso ou como exibido na página de consulta da SEFAZ-PB.
 Extraia os dados exatamente como aparecem, no formato JSON pedido.
 
@@ -34,12 +40,15 @@ export class GeminiError extends Error {
   }
 }
 
+type Part = { text: string } | { inline_data: { mime_type: string; data: string } }
+
 async function callModel(
   model: string,
   apiKey: string,
-  image: { base64: string; mimeType: string },
+  parts: Part[],
+  schema: object,
   timeoutMs: number,
-): Promise<unknown> {
+): Promise<{ data: unknown; tokens: number | undefined }> {
   let response: Response
   try {
     response = await fetch(`${API}/${model}:generateContent`, {
@@ -47,18 +56,11 @@ async function callModel(
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       signal: AbortSignal.timeout(timeoutMs),
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: PROMPT },
-              { inline_data: { mime_type: image.mimeType, data: image.base64 } },
-            ],
-          },
-        ],
+        contents: [{ parts }],
         generationConfig: {
           temperature: 0,
           responseMimeType: 'application/json',
-          responseJsonSchema: receiptJsonSchema,
+          responseJsonSchema: schema,
         },
       }),
     })
@@ -78,27 +80,57 @@ async function callModel(
   if (!text) throw new GeminiError(`${model}: empty response`, true)
 
   try {
-    return JSON.parse(text)
+    return { data: JSON.parse(text), tokens: body?.usageMetadata?.totalTokenCount }
   } catch {
     throw new GeminiError(`${model}: response is not JSON`, true)
   }
 }
 
-export async function extractReceipt(
+/** Tries each model in order; logs timing and token usage (never content). */
+async function generateJson(
+  purpose: string,
+  apiKey: string,
+  parts: Part[],
+  schema: object,
+  models: string[],
+  timeoutMs: number,
+): Promise<{ data: unknown; model: string }> {
+  let lastError: GeminiError | undefined
+  for (const model of models) {
+    const started = Date.now()
+    try {
+      const { data, tokens } = await callModel(model, apiKey, parts, schema, timeoutMs)
+      console.log(`gemini ${purpose}: ${model} ${Date.now() - started}ms ${tokens ?? '?'} tokens`)
+      return { data, model }
+    } catch (error) {
+      if (!(error instanceof GeminiError) || !error.retryable) throw error
+      console.warn(`gemini ${purpose}: trying next model after:`, error.message)
+      lastError = error
+    }
+  }
+  throw lastError ?? new GeminiError('no model configured', false)
+}
+
+export function extractReceipt(
   apiKey: string,
   image: { base64: string; mimeType: string },
   models: string[] = DEFAULT_MODELS,
   timeoutMs = 60_000,
 ): Promise<{ data: unknown; model: string }> {
-  let lastError: GeminiError | undefined
-  for (const model of models) {
-    try {
-      return { data: await callModel(model, apiKey, image, timeoutMs), model }
-    } catch (error) {
-      if (!(error instanceof GeminiError) || !error.retryable) throw error
-      console.warn('trying next model after:', error.message)
-      lastError = error
-    }
-  }
-  throw lastError ?? new GeminiError('no model configured', false)
+  const parts: Part[] = [
+    { text: EXTRACTION_PROMPT },
+    { inline_data: { mime_type: image.mimeType, data: image.base64 } },
+  ]
+  return generateJson('extract', apiKey, parts, receiptJsonSchema, models, timeoutMs)
+}
+
+export function classifyItems(
+  apiKey: string,
+  items: ItemToClassify[],
+  existing: ExistingClass[],
+  models: string[] = DEFAULT_MODELS,
+  timeoutMs = 45_000,
+): Promise<{ data: unknown; model: string }> {
+  const parts: Part[] = [{ text: classificationPrompt(items, existing) }]
+  return generateJson('classify', apiKey, parts, classificationJsonSchema, models, timeoutMs)
 }

@@ -1,10 +1,15 @@
 // RF01-RF03: receives a receipt image, reads it with Gemini, validates the
 // result and saves the purchase. The image is never stored.
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { encodeBase64 } from '@std/encoding/base64'
-import { checkReceipt, receiptSchema } from '../../../src/domain/receipt.ts'
+import {
+  classificationSchema,
+  itemsToClassify,
+  type ClassifiedItem,
+} from '../../../src/domain/classification.ts'
+import { checkReceipt, receiptSchema, type Receipt } from '../../../src/domain/receipt.ts'
 import type { Database } from '../../../src/types/database.ts'
-import { extractReceipt } from './gemini.ts'
+import { classifyItems, extractReceipt } from './gemini.ts'
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -118,7 +123,48 @@ Deno.serve(async (req) => {
     .maybeSingle()
   if (existing) return duplicate(existing.created_at, existing.id)
 
-  const { data: saved, error } = await supabase.rpc('save_receipt', { payload: receipt })
+  // RF05-RF06: products of this chain that already have a class skip the AI.
+  const codes = [...new Set(receipt.items.flatMap((item) => (item.code ? [item.code] : [])))]
+  const { data: known } = codes.length
+    ? await supabase
+        .from('products')
+        .select('code')
+        .eq('cnpj_root', receipt.market.cnpj.slice(0, 8))
+        .in('code', codes)
+        .not('class_id', 'is', null)
+    : { data: [] }
+  const pending = itemsToClassify(receipt.items, new Set((known ?? []).map((p) => p.code)))
+  const suggestions = await suggestClasses(supabase, apiKey, pending)
+
+  const unclassified = pending.length - suggestions.size
+  if (unclassified > 0) {
+    warnings.push({
+      code: 'unclassified',
+      message:
+        unclassified === 1
+          ? '1 item ficou sem classe. Classifique pela tela da compra.'
+          : `${unclassified} itens ficaram sem classe. Classifique pela tela da compra.`,
+    })
+  }
+
+  const payload = {
+    ...receipt,
+    items: receipt.items.map((item) => {
+      const suggestion = suggestions.get(item.line_number)
+      return {
+        ...item,
+        class: suggestion
+          ? {
+              name: suggestion.class_name,
+              category: suggestion.category,
+              base_unit: suggestion.base_unit,
+            }
+          : null,
+      }
+    }),
+  }
+
+  const { data: saved, error } = await supabase.rpc('save_receipt', { payload })
   if (error) {
     if (error.code === '23505') {
       const { data: raced } = await supabase
@@ -139,6 +185,52 @@ Deno.serve(async (req) => {
     items_count: receipt.items.length,
     paid_total: receipt.paid_total,
     warnings,
+    remembered: receipt.items.length - pending.length,
+    classified: suggestions.size,
     model: extracted.model,
   })
 })
+
+/**
+ * Asks the AI for the classes of the items the memory doesn't know. A failure
+ * here never loses the receipt: the items are saved without a class.
+ */
+async function suggestClasses(
+  supabase: SupabaseClient<Database>,
+  apiKey: string,
+  pending: Receipt['items'],
+): Promise<Map<number, ClassifiedItem>> {
+  const suggestions = new Map<number, ClassifiedItem>()
+  if (pending.length === 0) return suggestions
+
+  try {
+    const { data: classes, error } = await supabase
+      .from('item_classes')
+      .select('name, base_unit, categories(name)')
+      .order('name')
+    if (error) throw new Error(`item_classes: ${error.code}`)
+    const existing = classes.map((c) => ({
+      name: c.name,
+      base_unit: c.base_unit,
+      category: c.categories?.name ?? '',
+    }))
+
+    const { data } = await classifyItems(
+      apiKey,
+      pending.map(({ line_number, description, unit }) => ({ line_number, description, unit })),
+      existing,
+    )
+    const parsed = classificationSchema(pending.map((item) => item.line_number)).safeParse(data)
+    if (!parsed.success) {
+      console.error(
+        'invalid classification:',
+        parsed.error.issues.map((issue) => `${issue.path.join('.')}:${issue.code}`).join(', '),
+      )
+      return suggestions
+    }
+    for (const item of parsed.data.items) suggestions.set(item.line_number, item)
+  } catch (error) {
+    console.error('classification failed:', error instanceof Error ? error.message : 'unknown')
+  }
+  return suggestions
+}
