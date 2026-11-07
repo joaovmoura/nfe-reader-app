@@ -367,6 +367,7 @@ export type Database = {
     }
     Functions: {
       ping: { Args: Record<PropertyKey, never>; Returns: string }
+      save_receipt: { Args: { payload: Json }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
