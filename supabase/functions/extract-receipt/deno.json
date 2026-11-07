@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@std/encoding/base64": "jsr:@std/encoding@^1/base64",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.119.0",
+    "zod": "npm:zod@^4.6.7"
+  }
+}
