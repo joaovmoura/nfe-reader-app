@@ -52,7 +52,8 @@ body {
 
 /* 16px avoids iOS zooming into the field on focus. */
 input,
-button {
+button,
+.button {
   font: inherit;
   font-size: 1rem;
   padding: 0.6rem 0.75rem;
@@ -63,11 +64,20 @@ input {
   border: 1px solid #8888;
 }
 
-button {
+button,
+.button {
+  display: inline-block;
   border: none;
+  text-decoration: none;
   background: #1b7f4b;
   color: #fff;
   cursor: pointer;
+}
+
+button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid #8888;
 }
 
 button:disabled {
@@ -77,4 +87,24 @@ button:disabled {
 .error {
   color: #c62828;
   margin: 0;
+}
+
+.upload img {
+  max-width: 100%;
+  display: block;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin: 1rem 0;
+}
+
+.result {
+  margin-top: 1rem;
+}
+
+.warnings {
+  padding-left: 1.25rem;
 }

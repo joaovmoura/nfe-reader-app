@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import { renderToString } from 'react-dom/server'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { AuthContext } from '../auth/AuthContext.ts'
 import HomePage from './HomePage.tsx'
@@ -11,9 +12,11 @@ const session = { user: { email: 'casa@local.test' } } as Session
 describe('HomePage', () => {
   it('cumprimenta em português e mostra a conta conectada', () => {
     const html = renderToString(
-      <AuthContext.Provider value={{ session }}>
-        <HomePage />
-      </AuthContext.Provider>,
+      <MemoryRouter>
+        <AuthContext.Provider value={{ session }}>
+          <HomePage />
+        </AuthContext.Provider>
+      </MemoryRouter>,
     )
     expect(html).toContain('Olá')
     expect(html).toContain('casa@local.test')
