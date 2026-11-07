@@ -142,7 +142,7 @@ Ao terminar, me diga como verificar tudo no Studio local (http://localhost:54323
 
 **Pronto quando**
 
-- O cupom de exemplo vira uma compra com os 58 itens e o total de R$ 813,15.
+- O cupom de exemplo em `fixtures/` vira uma compra com todos os itens e o total impresso (exemplo atual: 11 itens, R$ 74,45, pago com PIX).
 - Reenviar o mesmo cupom mostra o aviso de duplicidade.
 - A chave do Gemini não aparece em nenhum arquivo do front nem no repo.
 

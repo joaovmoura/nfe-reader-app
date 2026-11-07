@@ -20,7 +20,7 @@ O dono do projeto é engenheiro backend experiente (Ruby on Rails, PostgreSQL, M
 | Front | React + Vite + TypeScript, PWA (`vite-plugin-pwa`) |
 | Hospedagem do front | GitHub Pages, deploy via GitHub Actions |
 | Banco e login | Supabase (Postgres + Auth), cliente `@supabase/supabase-js` |
-| IA | Gemini Flash (plano gratuito), chamado **somente** por uma Supabase Edge Function |
+| IA | Gemini Flash (plano gratuito: `gemini-3.6-flash`, com `gemini-3.5-flash` de reserva), chamado **somente** pela Edge Function `extract-receipt` |
 | Keep-alive | GitHub Actions com cron diário consultando o banco (o Supabase gratuito pausa após 7 dias de pouca atividade) |
 
 ## Regras inegociáveis
@@ -29,7 +29,8 @@ O dono do projeto é engenheiro backend experiente (Ruby on Rails, PostgreSQL, M
 - A `publishable key` (antiga `anon key`) e a URL do Supabase podem ir no front (são públicas por design); a proteção dos dados vem do **RLS**, que deve estar ligado em todas as tabelas.
 - `.env`, `.env.local` e similares ficam no `.gitignore`. Use `.env.example` para documentar as variáveis.
 - **Não persistir CPF do consumidor**, mesmo que apareça na imagem ou na resposta da IA. O prompt da extração também deve instruir o modelo a não retorná-lo.
-- Imagens de cupom usadas como fixture de teste devem estar com o CPF recortado.
+- Imagens de cupom usadas como fixture de teste devem estar com o CPF recortado e ficam **fora do Git** (`fixtures/` está no `.gitignore`, o repositório é público). Testes automatizados usam chaves de acesso e CNPJs fictícios.
+- Nunca logar a resposta bruta da IA nem valores extraídos (podem conter CPF); logue só códigos e caminhos de erro.
 - Uma única conta compartilhada pela casa; não é preciso registrar quem enviou cada cupom.
 
 ## Convenções
@@ -56,6 +57,7 @@ O dono do projeto é engenheiro backend experiente (Ruby on Rails, PostgreSQL, M
 - **Normalização (RF08):** itens em KG já vêm com preço/kg; itens por unidade só normalizam quando o tamanho da embalagem for informado (o app pergunta na primeira vez e lembra).
 - **Alta/baixa (RF10):** referência = mediana do preço normalizado da classe nos últimos 3 meses, todos os mercados; alta ≥ +20%, baixa ≤ −20% (limite configurável); com menos de duas compras da classe, não marca nada.
 - O preço comparado é o **valor unitário efetivamente pago**.
+- **Itens a granel** com o mesmo código em várias linhas do cupom são pesagens do mesmo produto: cada linha é guardada e o que vale é o preço por kg.
 
 ## Comandos
 
@@ -72,4 +74,6 @@ Atualize esta seção conforme os comandos forem criados.
 - `npx supabase migration new <nome>` — nova migration
 - `npm run db:types` — regenera `src/types/database.ts` a partir do banco local (rode após cada migration)
 - `npx supabase db push --linked` — aplica as migrations pendentes no projeto remoto (o `--linked` evita que versões futuras do CLI mirem o banco local)
-- `npx supabase functions serve` / `npx supabase functions deploy <nome>` — Edge Functions
+- `npx supabase functions serve --env-file supabase/functions/.env` — Edge Functions locais (o `.env` tem a `GEMINI_API_KEY` e fica fora do Git)
+- `npx supabase functions deploy <nome>` — publica uma Edge Function no projeto remoto
+- As Edge Functions importam as regras puras de `src/domain/` (caminho relativo); dependências delas vão no `deno.json` da função
