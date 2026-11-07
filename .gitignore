@@ -21,3 +21,6 @@ npm-debug.log*
 !.vscode/extensions.json
 .idea
 coverage
+
+# Cupons reais (mesmo com CPF recortado): ficam só na máquina
+fixtures/
