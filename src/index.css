@@ -108,3 +108,143 @@ button:disabled {
 .warnings {
   padding-left: 1.25rem;
 }
+
+.small {
+  font-size: 0.875rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stack label,
+.row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+select {
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.6rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #8888;
+  background: inherit;
+  color: inherit;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  max-width: 22rem;
+}
+
+.menu .button {
+  text-align: center;
+}
+
+.button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid #8888;
+}
+
+button.link {
+  background: none;
+  color: #1b7f4b;
+  padding: 0;
+  text-decoration: underline;
+}
+
+button.danger {
+  background: #c62828;
+}
+
+.cards {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #8884;
+  border-radius: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.card h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.card .actions {
+  margin: 0.25rem 0 0;
+}
+
+.item-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: normal;
+  background: #f9a82533;
+  color: inherit;
+  border: 1px solid #f9a825;
+  vertical-align: middle;
+}
+
+.summary dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem 1rem;
+}
+
+.summary dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.contents {
+  display: contents;
+}
+
+.danger-zone {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #8884;
+  overflow-wrap: anywhere;
+}

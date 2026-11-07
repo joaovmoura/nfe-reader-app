@@ -3,12 +3,18 @@ import { Link } from 'react-router'
 import ReactCrop, { type PercentCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { FunctionsHttpError } from '@supabase/supabase-js'
+import { NicknameForm } from '../components/NicknameForm.tsx'
+import { getMarket } from '../lib/api.ts'
+import { brl, dateTime } from '../lib/format.ts'
 import { cropToJpeg } from '../lib/prepareImage.ts'
 import { supabase } from '../lib/supabase.ts'
 
 type Saved = {
   purchase_id: number
+  market_id: number
   new_market: boolean
+  remembered: number
+  classified: number
   market: string
   issued_at: string
   items_count: number
@@ -21,18 +27,10 @@ type Step =
   | { name: 'pick' }
   | { name: 'crop'; url: string }
   | { name: 'sending' }
-  | { name: 'saved'; result: Saved }
+  | { name: 'saved'; result: Saved; askNickname: boolean }
   | { name: 'failed'; message: string; duplicate: boolean }
 
 const FULL: PercentCrop = { unit: '%', x: 0, y: 0, width: 100, height: 100 }
-
-const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-const dateTime = (iso: string) =>
-  new Date(iso).toLocaleString('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
 
 async function errorMessage(error: unknown): Promise<{ message: string; duplicate: boolean }> {
   if (error instanceof FunctionsHttpError) {
@@ -91,7 +89,9 @@ export default function UploadPage() {
     if (error || !data) {
       setStep({ name: 'failed', ...(await errorMessage(error)) })
     } else {
-      setStep({ name: 'saved', result: data })
+      // RF04: a market without a nickname (new or never named) asks for one.
+      const market = await getMarket(data.market_id).catch(() => null)
+      setStep({ name: 'saved', result: data, askNickname: market?.nickname === null })
     }
   }
 
@@ -147,6 +147,21 @@ export default function UploadPage() {
             {dateTime(step.result.issued_at)} · {step.result.items_count} itens ·{' '}
             {brl(step.result.paid_total)}
           </p>
+          {step.askNickname && (
+            <div className="card">
+              <p>
+                {step.result.new_market ? 'Primeira compra neste mercado!' : 'Mercado sem apelido.'}{' '}
+                Como quer chamá-lo?
+              </p>
+              <NicknameForm
+                marketId={step.result.market_id}
+                legalName={step.result.market}
+                nickname={null}
+                onSaved={() => setStep({ ...step, askNickname: false })}
+                onCancel={() => setStep({ ...step, askNickname: false })}
+              />
+            </div>
+          )}
           {step.result.warnings.length > 0 && (
             <>
               <p>Confira depois, pode ter havido erro de leitura:</p>
@@ -157,9 +172,14 @@ export default function UploadPage() {
               </ul>
             </>
           )}
-          <button type="button" onClick={() => setStep({ name: 'pick' })}>
-            Enviar outro cupom
-          </button>
+          <div className="actions">
+            <button type="button" className="secondary" onClick={() => setStep({ name: 'pick' })}>
+              Enviar outro cupom
+            </button>
+            <Link className="button" to={`/compras/${step.result.purchase_id}`}>
+              Ver compra
+            </Link>
+          </div>
         </section>
       )}
 
