@@ -31,7 +31,7 @@ O MVP lê a imagem, guarda os preços e compara. A revisão dos dados extraídos
 | RF02 | Extrair os dados por IA | Mercado (CNPJ, razão social, endereço), data e hora, chave de acesso, itens (código, descrição, quantidade, unidade, valor unitário, valor total), total dos produtos, desconto geral, total pago e forma de pagamento. |
 | RF03 | Evitar cupom duplicado | A chave de acesso identifica a nota; um segundo envio da mesma nota é recusado. |
 | RF04 | Cadastrar mercado pelo CNPJ | Na primeira compra o usuário dá um apelido (ex.: Atacadão Jardim Tavares). Cada filial é um mercado distinto. |
-| RF05 | Classificar itens por IA | Cada item recebe uma classe que distingue tipo (arroz branco, integral, parboilizado) e uma categoria ampla: Não perecíveis, Laticínios e frios, Carnes (frango, porco, peixe, boi), Perecíveis (ovo, tapioca, panificados), Hortifruti, Bebidas, e Limpeza e higiene. |
+| RF05 | Classificar itens por IA | Cada item recebe uma classe que distingue tipo (arroz branco, integral, parboilizado) e uma categoria ampla: Não perecíveis, Temperos (especiarias, ervas, caldos e condimentos), Laticínios e frios, Carnes (frango, porco, peixe, boi), Perecíveis (ovo, tapioca, panificados), Hortifruti, Bebidas, e Limpeza e higiene. |
 | RF06 | Lembrar classificações | Uma correção feita pelo usuário vale para os próximos cupons com o mesmo item no mesmo mercado ou rede. |
 | RF07 | Editar dados depois de salvar | Corrigir descrição, quantidade, preço, classe e categoria de qualquer item. |
 | RF08 | Normalizar preço por kg ou litro | Itens a granel já vêm por kg. Para itens por unidade, o app pergunta o tamanho da embalagem na primeira vez e lembra; sem essa informação, não normaliza. |

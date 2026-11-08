@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 export const CATEGORIES = [
   'Não perecíveis',
+  'Temperos',
   'Laticínios e frios',
   'Carnes',
   'Perecíveis',
@@ -106,7 +107,8 @@ Regras:
 - Se uma classe existente servir, use exatamente o mesmo nome dela.
 - Só crie uma classe nova quando nenhuma existente servir; nome em português, só a
   primeira letra maiúscula.
-- category: uma das categorias permitidas no schema. Carnes inclui frango, porco, peixe e boi;
+- category: uma das categorias permitidas no schema. Temperos inclui especiarias, ervas secas,
+  sal, caldos e condimentos (orégano, páprica, colorau, caldo de galinha); Carnes inclui frango, porco, peixe e boi;
   Perecíveis inclui ovos, tapioca e panificados; Hortifruti inclui frutas, verduras e legumes.
 - base_unit: como comparar o preço da classe: "kg" para sólidos vendidos a peso ou em
   embalagem com peso, "l" para líquidos, "un" para itens comparados por unidade (ex.: ovos em bandeja).

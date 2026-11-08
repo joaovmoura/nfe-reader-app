@@ -59,7 +59,7 @@ Me apresente:
    - Compras: chave de acesso de 44 dígitos única, data/hora de emissão (timestamptz), mercado, total dos produtos, desconto geral, total pago e forma de pagamento.
    - Itens da compra: número da linha, código do item, descrição como veio na nota, quantidade, unidade original (UND, KG, PCT, BDJ, MCO, PTE...), valor unitário e valor total. O mesmo produto pode aparecer em mais de uma linha da mesma compra.
    - Classes de produto (ex.: arroz branco, arroz integral) ligadas a uma categoria ampla.
-   - Categorias: exatamente estas 7 — Não perecíveis, Laticínios e frios, Carnes, Perecíveis, Hortifruti, Bebidas, Limpeza e higiene.
+   - Categorias: exatamente estas 8 — Não perecíveis, Temperos, Laticínios e frios, Carnes, Perecíveis, Hortifruti, Bebidas, Limpeza e higiene.
    - Memória de classificação (RF06): código do item + raiz do CNPJ → classe. Nunca o código sozinho, porque ele é interno da rede e pode vir truncado.
    - Tamanho de embalagem lembrado por produto (RF08), com unidade (g, kg, ml, l).
    - Configuração do limite de alta/baixa (RF10), padrão 20%.
@@ -78,7 +78,7 @@ Pare e espere minha aprovação.
 ## Fase 2 — Implementação (só depois de eu aprovar)
 
 1. Crie as migrations com npx supabase migration new, em arquivos pequenos e com nomes descritivos, em supabase/migrations/.
-2. As 7 categorias entram por migration, não pelo seed: o seed.sql só roda no banco local e elas precisam existir em produção também.
+2. As categorias entram por migration, não pelo seed: o seed.sql só roda no banco local e elas precisam existir em produção também.
 3. No supabase/seed.sql, coloque dados de exemplo só para desenvolvimento local: dois mercados, algumas compras em datas diferentes nos últimos meses e itens que exercitem as duas consultas (uma classe em alta, uma em baixa, uma com só uma compra, um item vendido por KG).
 4. RLS ligado em todas as tabelas, com acesso só para usuários autenticados (role authenticated); o role anon não lê nem escreve nada. Toda view deve ser criada com security_invoker = true, senão ela ignora o RLS das tabelas.
 5. Rode npx supabase db reset e confirme que sobe sem erro. Rode as consultas da fase 1 contra o seed e me mostre o resultado.
@@ -107,7 +107,7 @@ Ao terminar, me diga como verificar tudo no Studio local (http://localhost:54323
 
 **Pronto quando**
 
-- `npx supabase db reset` sobe o banco local sem erro, com as 7 categorias e os dados de exemplo.
+- `npx supabase db reset` sobe o banco local sem erro, com as categorias e os dados de exemplo.
 - As consultas de mediana e de comparação retornam o esperado com o seed.
 - `src/types/database.ts` foi gerado.
 - Depois do `db push`, as tabelas e as categorias aparecem no painel do projeto remoto.

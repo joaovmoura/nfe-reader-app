@@ -53,7 +53,7 @@ O dono do projeto é engenheiro backend experiente (Ruby on Rails, PostgreSQL, M
 - **Mercado = CNPJ completo** (cada filial é um mercado). O nome na nota é a razão social; o usuário dá um apelido na primeira compra (RF04).
 - **Chave de acesso (44 dígitos) é única** por compra; um segundo envio da mesma nota é recusado (RF03).
 - **Código do item é interno da rede e pode vir truncado no print.** Use-o só junto com o CNPJ/raiz do CNPJ para a memória de classificação (RF06); entre mercados, quem liga os produtos é a **classe**.
-- **Classe** distingue tipo (arroz branco ≠ integral ≠ parboilizado). **Categorias amplas**: Não perecíveis, Laticínios e frios, Carnes, Perecíveis, Hortifruti, Bebidas, Limpeza e higiene.
+- **Classe** distingue tipo (arroz branco ≠ integral ≠ parboilizado). **Categorias amplas**: Não perecíveis, Temperos, Laticínios e frios, Carnes, Perecíveis, Hortifruti, Bebidas, Limpeza e higiene.
 - **Normalização (RF08):** itens em KG já vêm com preço/kg; itens por unidade só normalizam quando o tamanho da embalagem for informado (o app pergunta na primeira vez e lembra).
 - **Alta/baixa (RF10):** referência = mediana do preço normalizado da classe nos últimos 3 meses, todos os mercados; alta ≥ +20%, baixa ≤ −20% (limite configurável); com menos de duas compras da classe, não marca nada.
 - O preço comparado é o **valor unitário efetivamente pago**.
