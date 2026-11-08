@@ -134,7 +134,7 @@ export default function UploadPage() {
 
       {step.name === 'sending' && (
         <p className="loading" role="status">
-          Lendo o cupom… isso pode levar até um minuto.
+          Lendo o cupom… isso pode levar até dois minutos.
         </p>
       )}
 

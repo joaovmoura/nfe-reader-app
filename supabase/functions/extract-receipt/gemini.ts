@@ -86,7 +86,14 @@ async function callModel(
   }
 }
 
-/** Tries each model in order; logs timing and token usage (never content). */
+// Below this, a call isn't worth starting.
+const MIN_CALL_MS = 8_000
+
+/**
+ * Tries each model in order; logs timing and token usage (never content).
+ * Each call gets at most `timeoutMs`, and never runs past `deadline` (epoch ms),
+ * so the whole request ends before the Edge Function is killed.
+ */
 async function generateJson(
   purpose: string,
   apiKey: string,
@@ -94,12 +101,18 @@ async function generateJson(
   schema: object,
   models: string[],
   timeoutMs: number,
+  deadline: number,
 ): Promise<{ data: unknown; model: string }> {
   let lastError: GeminiError | undefined
   for (const model of models) {
+    const available = Math.min(timeoutMs, deadline - Date.now())
+    if (available < MIN_CALL_MS) {
+      console.warn(`gemini ${purpose}: no time left for ${model}`)
+      break
+    }
     const started = Date.now()
     try {
-      const { data, tokens } = await callModel(model, apiKey, parts, schema, timeoutMs)
+      const { data, tokens } = await callModel(model, apiKey, parts, schema, available)
       console.log(`gemini ${purpose}: ${model} ${Date.now() - started}ms ${tokens ?? '?'} tokens`)
       return { data, model }
     } catch (error) {
@@ -108,29 +121,39 @@ async function generateJson(
       lastError = error
     }
   }
-  throw lastError ?? new GeminiError('no model configured', false)
+  throw lastError ?? new GeminiError('no time left', false)
 }
 
 export function extractReceipt(
   apiKey: string,
   image: { base64: string; mimeType: string },
+  deadline: number,
   models: string[] = DEFAULT_MODELS,
-  timeoutMs = 60_000,
+  timeoutMs = 75_000,
 ): Promise<{ data: unknown; model: string }> {
   const parts: Part[] = [
     { text: EXTRACTION_PROMPT },
     { inline_data: { mime_type: image.mimeType, data: image.base64 } },
   ]
-  return generateJson('extract', apiKey, parts, receiptJsonSchema, models, timeoutMs)
+  return generateJson('extract', apiKey, parts, receiptJsonSchema, models, timeoutMs, deadline)
 }
 
 export function classifyItems(
   apiKey: string,
   items: ItemToClassify[],
   existing: ExistingClass[],
+  deadline: number,
   models: string[] = DEFAULT_MODELS,
   timeoutMs = 45_000,
 ): Promise<{ data: unknown; model: string }> {
   const parts: Part[] = [{ text: classificationPrompt(items, existing) }]
-  return generateJson('classify', apiKey, parts, classificationJsonSchema, models, timeoutMs)
+  return generateJson(
+    'classify',
+    apiKey,
+    parts,
+    classificationJsonSchema,
+    models,
+    timeoutMs,
+    deadline,
+  )
 }

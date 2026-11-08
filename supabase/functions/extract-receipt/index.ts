@@ -12,6 +12,8 @@ import type { Database } from '../../../src/types/database.ts'
 import { classifyItems, extractReceipt } from './gemini.ts'
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+// The platform stops a request after ~150 s; finish the AI work before that.
+const AI_BUDGET_MS = 130_000
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 // Auth is a bearer token, not a cookie, so any origin is safe here.
@@ -44,6 +46,7 @@ function duplicate(createdAt: string, purchaseId: number): Response {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return reply(405, { error: 'method_not_allowed' })
+  const deadline = Date.now() + AI_BUDGET_MS
 
   // verify_jwt is off in config.toml (incompatible with asymmetric signing
   // keys), so the token is verified here.
@@ -87,7 +90,7 @@ Deno.serve(async (req) => {
   let extracted: Awaited<ReturnType<typeof extractReceipt>>
   try {
     const base64 = encodeBase64(new Uint8Array(await image.arrayBuffer()))
-    extracted = await extractReceipt(apiKey, { base64, mimeType: image.type })
+    extracted = await extractReceipt(apiKey, { base64, mimeType: image.type }, deadline)
   } catch (error) {
     console.error('gemini failed:', error instanceof Error ? error.message : 'unknown')
     return reply(502, {
@@ -134,7 +137,7 @@ Deno.serve(async (req) => {
         .not('class_id', 'is', null)
     : { data: [] }
   const pending = itemsToClassify(receipt.items, new Set((known ?? []).map((p) => p.code)))
-  const suggestions = await suggestClasses(supabase, apiKey, pending)
+  const suggestions = await suggestClasses(supabase, apiKey, pending, deadline)
 
   const unclassified = pending.length - suggestions.size
   if (unclassified > 0) {
@@ -199,6 +202,7 @@ async function suggestClasses(
   supabase: SupabaseClient<Database>,
   apiKey: string,
   pending: Receipt['items'],
+  deadline: number,
 ): Promise<Map<number, ClassifiedItem>> {
   const suggestions = new Map<number, ClassifiedItem>()
   if (pending.length === 0) return suggestions
@@ -219,6 +223,7 @@ async function suggestClasses(
       apiKey,
       pending.map(({ line_number, description, unit }) => ({ line_number, description, unit })),
       existing,
+      deadline,
     )
     const parsed = classificationSchema(pending.map((item) => item.line_number)).safeParse(data)
     if (!parsed.success) {
